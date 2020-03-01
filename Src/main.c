@@ -41,6 +41,7 @@
 #include "matrix_p3.h"
 #include "my_printf.h"
 #include "uart.h"
+#include "command_uart.h"
 /* USER CODE END Includes */
 
 /* Private variables ---------------------------------------------------------*/
@@ -62,14 +63,6 @@ static void MX_TIM3_Init(void);
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
-uint8_t REV;
-struct str_uart
-{
-	char data[200];
-	char flag_finish;
-};
-#define NUM_BUFF_UART_TEMP 2
-struct str_uart UART_RECIVE[NUM_BUFF_UART_TEMP];
 
 struct
 {
@@ -78,22 +71,8 @@ struct
 	uint8_t data[200];
 	uint16_t packit; //chỉ lấy 3byte 000-999
 } Frame_01;			 /*nhận chuỗi dữ liệu hiển thị*/
-struct
-{
-	uint8_t lenght;
-	uint8_t cmd;
-	uint8_t data[200];
-	uint8_t crc;
-} Frame_All;
 
-void get_string_handle(void);
-void get_byte_uart(uint8_t c);
-
-//void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
-//{
-//	HAL_UART_Receive_IT(&huart1, &REV, 1);
-//	get_byte_uart(REV);
-//}
+void get_string_handle(char *data, command_error_typdef error);
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
@@ -144,6 +123,8 @@ int main(void)
 	matrix_refesh(0);
 	matrix_refesh(1);
 	
+	command_register_callback(get_string_handle);
+	
 	//matrix_send(0, "Cao van teo em", 1);
 	//matrix_send(1, "Cao Van Tuan", 0);
 	/* USER CODE END 2 */
@@ -156,7 +137,7 @@ int main(void)
 
 		/* USER CODE BEGIN 3 */
 		HAL_IWDG_Refresh(&hiwdg);
-		get_string_handle();
+		get_command_uart();
 		matrix_process();
 		HAL_Delay(30);
 	}
@@ -315,137 +296,63 @@ void report_to_app(uint8_t line, uint8_t pause_run, uint8_t status, uint16_t pac
 	printf_cmd("\x7E%s\x7F", buff);
 }
 //
-void get_string_handle(void)
+void get_string_handle(char *data, command_error_typdef error)
 {
-	static uint8_t buff_num = 0;
-	static uint16_t packit_old = 0;
 	uint8_t i;
-	uint8_t crc;
-
-	if (UART_RECIVE[buff_num].flag_finish == 1)
+	
+	if(error != COMMAND_SUCCESS)
 	{
-		UART_RECIVE[buff_num].flag_finish = 0;
-
-		/*sao chep dữ liệu qua frame trung tâm*/
-		debug_msg("%s\r", UART_RECIVE[buff_num].data);
-		memcpy((uint8_t *)&Frame_All, UART_RECIVE[buff_num].data, strlen(UART_RECIVE[buff_num].data));
-
-		/*kiểm tra độ dài của dữ liệu*/
-		debug_msg("lenght: %d-%d\r", Frame_All.lenght, strlen((char *)Frame_All.data) + 1); //1 là CMD, crc đã tính trong strlen
-		if (Frame_All.lenght != strlen((char *)Frame_All.data) + 1)							//1 là CMD, crc đã tính trong strlen
-		{
-			report_to_app(0, 0, 1, 0);
-			return;
-		}
-		/*kiểm tra CMD*/
-		debug_msg("cmd: %d\r", Frame_All.cmd);
-		if (Frame_All.cmd == 0)
-		{
-			report_to_app(0, 0, 2, 0);
-			return;
-		}
-		/*kiểm tra CRC*/
-		crc = 0;
-		crc ^= Frame_All.lenght;
-		crc ^= Frame_All.cmd;
-		for (i = 0; i < (Frame_All.lenght - 2); i++) //3 là CMD, lenght, crc
-			crc ^= Frame_All.data[i];
-		Frame_All.crc = Frame_All.data[strlen((char *)Frame_All.data) - 1]; //1 là crc
-		Frame_All.data[strlen((char *)Frame_All.data) - 1] = 0;				//1 là crc
-		debug_msg("crc: %02X-%02X\r", Frame_All.crc, crc);
-		if (Frame_All.crc != crc)
-		{
-			report_to_app(0, 0, 4, 0);
-			return;
-		}
-
-		/*sao chép dữ liệu qua frame điều khiển matrix*/
-		debug_msg("%s\r", (char *)Frame_All.data);
-		memcpy((uint8_t *)&Frame_01, Frame_All.data, strlen((char *)Frame_All.data));
-		/*lấy dữ liệu cmd dòng*/
-		Frame_01.line -= 48;
-		/*lấy dữ liệu cmd pause run*/
-		Frame_01.pause_run -= 48;
-		/*lấy dữ liệu cmd packit*/
-		Frame_01.packit = 0;
-		for (i = strlen((char *)Frame_01.data) - 3; i < strlen((char *)Frame_01.data); i++)
-		{
-			Frame_01.packit *= 10;
-			Frame_01.packit += Frame_01.data[i] - 48;
-			debug_msg("packit %d: %d-%c\r", i, Frame_01.packit, Frame_01.data[i]);
-		}
-
-		/*xóa dữ liệu packit ra khỏi data*/
-		Frame_01.data[strlen((char *)Frame_01.data) - 3] = 0;
-
-		/*kiểm tra lệnh điều khiển dòng*/
-		debug_msg("line: %d\r", Frame_01.line);
-		if (Frame_01.line != 1 && Frame_01.line != 2)
-		{
-			report_to_app(Frame_01.line, Frame_01.pause_run, 3, Frame_01.packit);
-			return;
-		}
-		/*kiểm tra hiệu ứng chạy dừng*/
-		debug_msg("pause_run: %d\r", Frame_01.pause_run);
-		if (Frame_01.pause_run != 0 && Frame_01.pause_run != 1)
-		{
-			report_to_app(Frame_01.line, Frame_01.pause_run, 3, Frame_01.packit);
-			return;
-		}
-		/*kiểm tra packit*/
-		debug_msg("packit: %d\r", Frame_01.packit);
-		if (Frame_01.packit == packit_old)
-		{
-			report_to_app(Frame_01.line, Frame_01.pause_run, 3, Frame_01.packit);
-			return;
-		}
-		/*kiểm tra dữ liệu quá dài so với màng hình*/
-		if (font_get_lenght_pixel((char*)Frame_01.data) == 0 && Frame_01.pause_run == 0)
-		{
-			report_to_app(Frame_01.line, Frame_01.pause_run, 3, Frame_01.packit);
-			return;
-		}
-		/*dữ liệu được đưa ra màng hình*/
-		packit_old = Frame_01.packit;
-		debug_msg("data: %s\r", Frame_01.data);
-		matrix_send(Frame_01.line - 1, (char *)Frame_01.data, Frame_01.pause_run);
-		report_to_app(Frame_01.line, Frame_01.pause_run, 0, Frame_01.packit);
+		  report_to_app(0, 0, error, 0);
 	}
 
-	if (++buff_num >= NUM_BUFF_UART_TEMP)
-		buff_num = 0;
-}
-//
-
-void get_byte_uart(uint8_t ch)
-{
-	static uint8_t buff_num = 0, index_buff = 0;
-	static uint8_t flag_ready = 0;
-
-	/*kiểm tra ký tự start*/
-	if (ch == 0x7E)
+	/*sao chép dữ liệu qua frame điều khiển matrix*/
+	debug_msg("%s\r", (char *)data);
+	memcpy((uint8_t *)&Frame_01, data, strlen((char *)data));
+	/*lấy dữ liệu cmd dòng*/
+	Frame_01.line -= 48;
+	/*lấy dữ liệu cmd pause run*/
+	Frame_01.pause_run -= 48;
+	/*lấy dữ liệu cmd packit*/
+	Frame_01.packit = 0;
+	for (i = strlen((char *)Frame_01.data) - 3; i < strlen((char *)Frame_01.data); i++)
 	{
-		index_buff = 0;
-		flag_ready = 1;
+		Frame_01.packit *= 10;
+		Frame_01.packit += Frame_01.data[i] - 48;
+		debug_msg("packit %d: %d-%c\r", i, Frame_01.packit, Frame_01.data[i]);
+	}
+
+	/*xóa dữ liệu packit ra khỏi data*/
+	Frame_01.data[strlen((char *)Frame_01.data) - 3] = 0;
+
+	/*kiểm tra lệnh điều khiển dòng*/
+	debug_msg("line: %d\r", Frame_01.line);
+	if (Frame_01.line != 1 && Frame_01.line != 2)
+	{
+		report_to_app(Frame_01.line, Frame_01.pause_run, 3, Frame_01.packit);
 		return;
 	}
-	/*kiểm tra ký tự stop*/
-	else if (ch == 0x7F)
+	/*kiểm tra hiệu ứng chạy dừng*/
+	debug_msg("pause_run: %d\r", Frame_01.pause_run);
+	if (Frame_01.pause_run != 0 && Frame_01.pause_run != 1)
 	{
-		flag_ready = 0;
-		UART_RECIVE[buff_num].flag_finish = 1;
-		if (++buff_num == NUM_BUFF_UART_TEMP)
-			buff_num = 0;
-
+		report_to_app(Frame_01.line, Frame_01.pause_run, 3, Frame_01.packit);
 		return;
 	}
-	/*lấy data*/
-	if (flag_ready)
+	/*kiểm tra packit*/
+	debug_msg("packit: %d\r", Frame_01.packit);
+
+	/*kiểm tra dữ liệu quá dài so với màng hình*/
+	if (font_get_lenght_pixel((char*)Frame_01.data) == 0 && Frame_01.pause_run == 0)
 	{
-		UART_RECIVE[buff_num].data[index_buff] = ch;
-		UART_RECIVE[buff_num].data[++index_buff] = 0;
+		report_to_app(Frame_01.line, Frame_01.pause_run, 3, Frame_01.packit);
+		return;
 	}
+	/*dữ liệu được đưa ra màng hình*/
+	debug_msg("data: %s\r", Frame_01.data);
+	matrix_send(Frame_01.line - 1, (char *)Frame_01.data, Frame_01.pause_run);
+	report_to_app(Frame_01.line, Frame_01.pause_run, COMMAND_SUCCESS, Frame_01.packit);
 }
+
 /* USER CODE END 4 */
 
 /**

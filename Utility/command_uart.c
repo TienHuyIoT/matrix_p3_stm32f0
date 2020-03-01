@@ -29,6 +29,14 @@ uint8_t uart_rx_buff[FRAME_LENGHT_TOTAL + START_LENGHT + STOP_LENGHT + LENGHT_FI
 uint8_t uart_rx_id = 0;
 uint8_t uart_rx_lenght = 0;
 static TIMEOUT_TypeDef uart_rx_to = TIMEOUT_DEFAULT;
+
+update_str_panel_ptr	p_update_str_panel_cb = 0;
+
+void command_register_callback(update_str_panel_ptr p_callback)
+{
+	p_update_str_panel_cb = p_callback;
+}
+
 void get_command_uart(void)
 {
     uint8_t data;
@@ -80,14 +88,32 @@ void get_command_uart(void)
             command_rx_state = COMMAND_START;
             FrameData_Typedef Rx_Frame_t;
             int Rt = FrameData_Parse(&Rx_Frame_t, uart_rx_buff, uart_rx_buff[1] + 3);
+					  command_error_typdef error_type;
             if (Rt == FRAME_OK)
             {
                 COMMAND_UART_DEBUG("Uart Rx Cmd parse OK");
+							  error_type = COMMAND_SUCCESS;
             } 
-            else
+            else if(Rt == FRAME_CRC_ERR)
             {
                 COMMAND_UART_DEBUG("Rt %u Crc %02X", Rt, Rx_Frame_t.Crc);
-            }              
+							  error_type = COMMAND_CRC_OF_FRAME_ERROR;
+            }  
+						else if(Rt == FRAME_LENGHT_PACK_ERR)
+            {
+                COMMAND_UART_DEBUG("Rt %u Lenght %u", Rt, Rx_Frame_t.Lenght);
+							  error_type = COMMAND_LENGHT_ERROR;
+            }
+						else
+						{
+						    error_type = COMMAND_OF_FRAME_ERROR;
+						}
+						
+						if(p_update_str_panel_cb !=0)
+						{
+							Rx_Frame_t.Crc = 0; // add null pointer for pData
+							p_update_str_panel_cb((char*)Rx_Frame_t.pData, error_type);
+						}
         }
         break;
     }
