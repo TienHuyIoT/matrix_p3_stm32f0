@@ -338,7 +338,7 @@
               <MiscControls>--C99</MiscControls>
               <Define>USE_HAL_DRIVER,STM32F070x6</Define>
               <Undefine></Undefine>
-              <IncludePath>../Inc;   ../Drivers/STM32F0xx_HAL_Driver/Inc;   ../Drivers/STM32F0xx_HAL_Driver/Inc/Legacy;   ../Drivers/CMSIS/Device/ST/STM32F0xx/Include;   ../Drivers/CMSIS/Include;   ..\Library_of_me</IncludePath>
+              <IncludePath>../Inc;../Drivers/STM32F0xx_HAL_Driver/Inc;../Drivers/STM32F0xx_HAL_Driver/Inc/Legacy;../Drivers/CMSIS/Device/ST/STM32F0xx/Include;../Drivers/CMSIS/Include;..\Library_of_me;..\lld\UART</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -517,10 +517,15 @@
               <FileType>1</FileType>
               <FilePath>..\Library_of_me\matrix_p3.c</FilePath>
             </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>lld/uart</GroupName>
+          <Files>
             <File>
-              <FileName>my_printf.c</FileName>
+              <FileName>uart.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\Library_of_me\my_printf.c</FilePath>
+              <FilePath>..\lld\UART\uart.c</FilePath>
             </File>
           </Files>
         </Group>

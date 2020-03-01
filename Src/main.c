@@ -40,14 +40,13 @@
 #include "string.h"
 #include "matrix_p3.h"
 #include "my_printf.h"
+#include "uart.h"
 /* USER CODE END Includes */
 
 /* Private variables ---------------------------------------------------------*/
 IWDG_HandleTypeDef hiwdg;
 
 TIM_HandleTypeDef htim3;
-
-UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
@@ -60,7 +59,6 @@ void Error_Handler(void);
 static void MX_GPIO_Init(void);
 static void MX_IWDG_Init(void);
 static void MX_TIM3_Init(void);
-static void MX_USART1_UART_Init(void);
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
@@ -91,11 +89,11 @@ struct
 void get_string_handle(void);
 void get_byte_uart(uint8_t c);
 
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
-{
-	HAL_UART_Receive_IT(&huart1, &REV, 1);
-	get_byte_uart(REV);
-}
+//void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+//{
+//	HAL_UART_Receive_IT(&huart1, &REV, 1);
+//	get_byte_uart(REV);
+//}
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
@@ -134,11 +132,12 @@ int main(void)
 	MX_GPIO_Init();
 	MX_IWDG_Init();
 	MX_TIM3_Init();
-	MX_USART1_UART_Init();
+	//MX_USART1_UART_Init();
+	LLD_USART1_Init(9600);
 
 	/* USER CODE BEGIN 2 */
 	HAL_TIM_Base_Start_IT(&htim3);
-	HAL_UART_Receive_IT(&huart1, &REV, 1);
+	
 	HAL_IWDG_Start(&hiwdg);
 
 	debug_msg("start kaka...........\r");
@@ -259,26 +258,6 @@ static void MX_TIM3_Init(void)
 	sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
 	sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
 	if (HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig) != HAL_OK)
-	{
-		Error_Handler();
-	}
-}
-
-/* USART1 init function */
-static void MX_USART1_UART_Init(void)
-{
-
-	huart1.Instance = USART1;
-	huart1.Init.BaudRate = 9600;
-	huart1.Init.WordLength = UART_WORDLENGTH_8B;
-	huart1.Init.StopBits = UART_STOPBITS_1;
-	huart1.Init.Parity = UART_PARITY_NONE;
-	huart1.Init.Mode = UART_MODE_TX_RX;
-	huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-	huart1.Init.OverSampling = UART_OVERSAMPLING_16;
-	huart1.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
-	huart1.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
-	if (HAL_UART_Init(&huart1) != HAL_OK)
 	{
 		Error_Handler();
 	}

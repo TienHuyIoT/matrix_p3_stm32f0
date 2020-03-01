@@ -1,14 +1,14 @@
 #ifndef __MY_PRINTF_H__
 #define __MY_PRINTF_H__
 
-#include "stm32f0xx_hal.h"
+#include "uart.h"
 
-extern UART_HandleTypeDef huart1;
+/* Private macro -------------------------------------------------------------*/
+#define printf_cmd(f_, ...) 					USART1_PRINTF(f_, ##__VA_ARGS__)
 
-#define debug_msg(fmt, ...) //printf_uart("\r\n" fmt, ##__VA_ARGS__);
-#define printf_cmd(fmt, ...) printf_uart(fmt, ##__VA_ARGS__);
+#define TAG				"CMD"
+#define debug_msg(f_, ...)       			BOARD_NEO_LOG(TAG, f_, ##__VA_ARGS__)
 
-void printf_uart(const char *fmt, ...);
 
 #endif //__MY_PRINTF_H__
 /*THE END*/
