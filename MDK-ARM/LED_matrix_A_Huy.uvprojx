@@ -338,7 +338,7 @@
               <MiscControls>--C99</MiscControls>
               <Define>USE_HAL_DRIVER,STM32F070x6</Define>
               <Undefine></Undefine>
-              <IncludePath>../Inc;../Drivers/STM32F0xx_HAL_Driver/Inc;../Drivers/STM32F0xx_HAL_Driver/Inc/Legacy;../Drivers/CMSIS/Device/ST/STM32F0xx/Include;../Drivers/CMSIS/Include;..\Library_of_me;..\lld\UART</IncludePath>
+              <IncludePath>../Inc;../Drivers/STM32F0xx_HAL_Driver/Inc;../Drivers/STM32F0xx_HAL_Driver/Inc/Legacy;../Drivers/CMSIS/Device/ST/STM32F0xx/Include;../Drivers/CMSIS/Include;..\Library_of_me;..\lld\UART;..\Utility;..\board\sys;..\board\hht_lib\timeoutevent</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -526,6 +526,41 @@
               <FileName>uart.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\lld\UART\uart.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>utility/command_uart</GroupName>
+          <Files>
+            <File>
+              <FileName>command_uart.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Utility\command_uart.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>board_lib</GroupName>
+          <Files>
+            <File>
+              <FileName>sys_tick.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\board\sys\sys_tick.c</FilePath>
+            </File>
+            <File>
+              <FileName>TimeOutEvent.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\board\hht_lib\timeoutevent\TimeOutEvent.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>utility/frame</GroupName>
+          <Files>
+            <File>
+              <FileName>frame.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Utility\frame.c</FilePath>
             </File>
           </Files>
         </Group>
