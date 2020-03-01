@@ -348,7 +348,7 @@ void get_string_handle(void)
 		crc = 0;
 		crc ^= Frame_All.lenght;
 		crc ^= Frame_All.cmd;
-		for (i = 0; i < (Frame_All.lenght - 3); i++) //3 là CMD, lenght, crc
+		for (i = 0; i < (Frame_All.lenght - 2); i++) //3 là CMD, lenght, crc
 			crc ^= Frame_All.data[i];
 		Frame_All.crc = Frame_All.data[strlen((char *)Frame_All.data) - 1]; //1 là crc
 		Frame_All.data[strlen((char *)Frame_All.data) - 1] = 0;				//1 là crc

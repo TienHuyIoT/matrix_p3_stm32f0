@@ -15,9 +15,17 @@ typedef enum
 
 get_command_state_typedef command_rx_state = COMMAND_START;
 
-#define DATA_LENGHT_NUM					200
-#define FRAME_LENGHT_TOTAL			DATA_LENGHT_NUM + FRAME_LENGHT_MIN
-uint8_t uart_rx_buff[FRAME_LENGHT_TOTAL];
+#define LINE_CHAR_NUM											1
+#define RUN_CHAR_NUM											1
+#define ID_CHAR_NUM											  3
+#define DATA_LENGHT_NUM										200
+#define DATA_LENGHT_OF_FRAME_NUM					(DATA_LENGHT_NUM + ID_CHAR_NUM + RUN_CHAR_NUM + LINE_CHAR_NUM)
+#define FRAME_LENGHT_TOTAL			          (DATA_LENGHT_OF_FRAME_NUM + FRAME_LENGHT_MIN)
+
+#define START_LENGHT											1
+#define STOP_LENGHT											  1
+#define LENGHT_FIELD_NUM									1
+uint8_t uart_rx_buff[FRAME_LENGHT_TOTAL + START_LENGHT + STOP_LENGHT + LENGHT_FIELD_NUM];
 uint8_t uart_rx_id = 0;
 uint8_t uart_rx_lenght = 0;
 static TIMEOUT_TypeDef uart_rx_to = TIMEOUT_DEFAULT;
@@ -62,7 +70,7 @@ void get_command_uart(void)
         command_rx_state = COMMAND_STOP;
         uart_rx_buff[1] = data;
         uart_rx_id = 2;
-        uart_rx_lenght = data + 1;
+        uart_rx_lenght = data + STOP_LENGHT;
         break;
     case COMMAND_STOP:
         uart_rx_buff[uart_rx_id++] = data;
