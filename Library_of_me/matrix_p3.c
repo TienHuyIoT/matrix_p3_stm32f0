@@ -9,6 +9,8 @@
 #define INDEX_START_DATA 100
 #define BYTE_FIRST_TABLE ' '
 
+static uint8_t row_of_line = PIXEL_ROW_OF_LINE;
+
 uint8_t font_get_location_lenght(uint8_t Byte_data, uint16_t *location, uint16_t *width)
 {
 	uint16_t byte_cnt = 0;
@@ -158,6 +160,11 @@ void matrix_process(void)
 	uint8_t line_num;
 	uint16_t location_font; //vị trí của một font chữ trong bảng mã
 	uint16_t pixel_col_num = 0;
+	
+	if (row_of_line != 0)
+	{
+		return;
+	}
 
 	for (line_num = 0; line_num < TABLE_ROW_NUM; line_num++)
 	{
@@ -210,14 +217,20 @@ void matrix_process(void)
 				break;
 		}
 	}
+	
+	row_of_line = PIXEL_ROW_OF_LINE;
 }
 /*chương trình scan hiển thị*/
 void matrix_scan_show(void)
 {
-	static uint8_t row_of_line = PIXEL_ROW_OF_LINE;
 	uint8_t lenght;
+	
+	if(row_of_line == 0)
+	{
+		return;
+	}
 
-	row_of_line -= 1;
+	row_of_line --;
 	matrix_select_line(row_of_line);
 
 	for (lenght = 0; lenght < ALL_BYTE_OF_LINE; lenght++)
@@ -226,8 +239,8 @@ void matrix_scan_show(void)
 	matrix_latch_data();
 	OE(1);
 	OE(0);
-	if (row_of_line == 0)
-		row_of_line = PIXEL_ROW_OF_LINE;
+//	if (row_of_line == 0)
+//		row_of_line = PIXEL_ROW_OF_LINE;
 }
 
 /*THE END*/

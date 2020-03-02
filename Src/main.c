@@ -38,6 +38,8 @@
 
 //#include "stm32f0xx_hal_gpio.h"
 #include "string.h"
+#include "stdio.h"
+#include "stdlib.h"
 #include "matrix_p3.h"
 #include "my_printf.h"
 #include "uart.h"
@@ -84,6 +86,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 			cnt_blink = 0;
 			HAL_GPIO_TogglePin(GPIOA, LED1_Pin);
 		}
+
 		matrix_scan_show();
 	}
 }
@@ -139,7 +142,7 @@ int main(void)
 		HAL_IWDG_Refresh(&hiwdg);
 		get_command_uart();
 		matrix_process();
-		HAL_Delay(30);
+		//HAL_Delay(30);
 	}
 	/* USER CODE END 3 */
 }
@@ -287,68 +290,104 @@ static void MX_GPIO_Init(void)
 /* USER CODE BEGIN 4 */
 void report_to_app(uint8_t line, uint8_t pause_run, uint8_t status, uint16_t packit)
 {
-	char buff[100] = {0};
+	char buff[250] = {0};
 	uint8_t i, crc = 0;
-	sprintf(buff, "%c%c%d%d%d%03d", 8, 1, line, pause_run, status, packit);
+	sprintf(buff, "%c%c%u%u%u%03u", 8, 1, line, pause_run, status, packit);
 	for (i = 0; i < strlen(buff); i++)
+	{
 		crc ^= buff[i];
+	}		
 	buff[strlen(buff)] = crc;
-	printf_cmd("\x7E%s\x7F", buff);
+	
+	putchar_usart1(0x7E);
+	for(i = 0; i < (strlen(buff) + 1); i++)
+	{
+		putchar_usart1(buff[i]);
+	}	
+	putchar_usart1(0x7F);
+	
+	debug_msg("Response\r\n");
 }
-//
+
+/*
+$7E$0C$0110Hello005$7B$7F
+$7E$21$0111Welcome to MT LED Test App005$57$7F
+$7E$16$012129-2-2010 15:30005$7B$7F
+
+struct
+{
+	uint8_t line;
+	uint8_t pause_run;
+	uint8_t data[200];
+	uint16_t packit; //chỉ lấy 3byte 000-999
+} Frame_01;
+
+*/
 void get_string_handle(char *data, command_error_typdef error)
 {
-	uint8_t i;
+//	uint8_t i;
 	
 	if(error != COMMAND_SUCCESS)
 	{
+		  debug_msg("Fail command\r\n");
 		  report_to_app(0, 0, error, 0);
+		  return;
 	}
 
 	/*sao chép dữ liệu qua frame điều khiển matrix*/
-	debug_msg("%s\r", (char *)data);
+	//debug_msg("%s\r", (char *)data);
 	memcpy((uint8_t *)&Frame_01, data, strlen((char *)data));
 	/*lấy dữ liệu cmd dòng*/
-	Frame_01.line -= 48;
+	Frame_01.line = (data[0] - '0');
 	/*lấy dữ liệu cmd pause run*/
-	Frame_01.pause_run -= 48;
+	Frame_01.pause_run = (data[1] - '0');
+	memset(Frame_01.data, 0, 200);
+	memcpy(Frame_01.data, &data[2], strlen(data) - 5);
 	/*lấy dữ liệu cmd packit*/
-	Frame_01.packit = 0;
-	for (i = strlen((char *)Frame_01.data) - 3; i < strlen((char *)Frame_01.data); i++)
-	{
-		Frame_01.packit *= 10;
-		Frame_01.packit += Frame_01.data[i] - 48;
-		debug_msg("packit %d: %d-%c\r", i, Frame_01.packit, Frame_01.data[i]);
-	}
+	Frame_01.packit = atoi(&data[strlen(data) - 3]);
+	
+	uint8_t leng = strlen((char *)Frame_01.data);
+	debug_msg("Data %u: %s\r\n", leng, (char *)Frame_01.data);
+	
+//	for (i = leng - 3; i < leng; i++)
+//	{
+//		Frame_01.packit *= 10;
+//		Frame_01.packit += (Frame_01.data[i] - 48);		
+//	}
+
+	debug_msg("Line %u, run %u, p_id %u",Frame_01.line, Frame_01.pause_run, Frame_01.packit);
 
 	/*xóa dữ liệu packit ra khỏi data*/
-	Frame_01.data[strlen((char *)Frame_01.data) - 3] = 0;
+	//Frame_01.data[strlen((char *)Frame_01.data) - 3] = 0;
 
 	/*kiểm tra lệnh điều khiển dòng*/
-	debug_msg("line: %d\r", Frame_01.line);
+	//debug_msg("line: %d\r", Frame_01.line);
 	if (Frame_01.line != 1 && Frame_01.line != 2)
 	{
+		debug_msg("Fail line\r\n");
 		report_to_app(Frame_01.line, Frame_01.pause_run, 3, Frame_01.packit);
 		return;
 	}
 	/*kiểm tra hiệu ứng chạy dừng*/
-	debug_msg("pause_run: %d\r", Frame_01.pause_run);
+	//debug_msg("pause_run: %d\r", Frame_01.pause_run);
 	if (Frame_01.pause_run != 0 && Frame_01.pause_run != 1)
 	{
+		debug_msg("Fail run\r\n");
 		report_to_app(Frame_01.line, Frame_01.pause_run, 3, Frame_01.packit);
 		return;
 	}
 	/*kiểm tra packit*/
-	debug_msg("packit: %d\r", Frame_01.packit);
+	//debug_msg("packit: %d\r", Frame_01.packit);
 
 	/*kiểm tra dữ liệu quá dài so với màng hình*/
 	if (font_get_lenght_pixel((char*)Frame_01.data) == 0 && Frame_01.pause_run == 0)
 	{
+		debug_msg("Fail lenght pixel\r\n");
 		report_to_app(Frame_01.line, Frame_01.pause_run, 3, Frame_01.packit);
 		return;
 	}
 	/*dữ liệu được đưa ra màng hình*/
-	debug_msg("data: %s\r", Frame_01.data);
+	debug_msg("OK\r\n");
 	matrix_send(Frame_01.line - 1, (char *)Frame_01.data, Frame_01.pause_run);
 	report_to_app(Frame_01.line, Frame_01.pause_run, COMMAND_SUCCESS, Frame_01.packit);
 }
