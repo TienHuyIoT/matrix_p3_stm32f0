@@ -7,7 +7,7 @@
 #define printf_cmd(f_, ...) 					USART1_PRINTF(f_, ##__VA_ARGS__)
 
 #define TAG				"MSG"
-#define debug_msg(f_, ...)       			//BOARD_NEO_LOG(TAG, f_, ##__VA_ARGS__)
+#define debug_msg(f_, ...)       			BOARD_NEO_LOG(TAG, f_, ##__VA_ARGS__)
 
 
 #endif //__MY_PRINTF_H__

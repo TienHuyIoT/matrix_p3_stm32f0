@@ -142,7 +142,6 @@ int main(void)
 		HAL_IWDG_Refresh(&hiwdg);
 		get_command_uart();
 		matrix_process();
-		//HAL_Delay(30);
 	}
 	/* USER CODE END 3 */
 }
@@ -380,12 +379,12 @@ void get_string_handle(char *data, command_error_typdef error)
 	//debug_msg("packit: %d\r", Frame_01.packit);
 
 	/*kiểm tra dữ liệu quá dài so với màng hình*/
-	if (font_get_lenght_pixel((char*)Frame_01.data) == 0 && Frame_01.pause_run == 0)
-	{
-		debug_msg("Fail lenght pixel\r\n");
-		report_to_app(Frame_01.line, Frame_01.pause_run, 3, Frame_01.packit);
-		return;
-	}
+//	if (font_get_lenght_pixel((char*)Frame_01.data) == 0 && Frame_01.pause_run == 0)
+//	{
+//		debug_msg("Fail lenght pixel\r\n");
+//		report_to_app(Frame_01.line, Frame_01.pause_run, 3, Frame_01.packit);
+//		return;
+//	}
 	/*dữ liệu được đưa ra màng hình*/
 	debug_msg("OK\r\n");
 	matrix_send(Frame_01.line - 1, (char *)Frame_01.data, Frame_01.pause_run);
