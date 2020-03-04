@@ -158,25 +158,62 @@ void matrix_send(uint8_t line, char *data, uint8_t pause_run)
 	Matrix_data[line].pause_run = pause_run;
 }
 
-//void matrix_run_hidden(void)
-//{
-//	static uint16_t pixel_col_num_hidden[TABLE_ROW_NUM] = {0};
-//	static uint16_t location_font_hidden[TABLE_ROW_NUM] = {0}; //vị trí của một font chữ trong bảng mã
-//	for (uint8_t line_num = 0; line_num < TABLE_ROW_NUM; line_num++)
-//	{
-//		if (Matrix_data[line_num].flag_data == 1)
-//		{
-//			row_update_enable = 1;
-//			pixel_col_num_hidden = PIXEL_COL * TABLE_COL_NUM;
-//			// Matrix_data[line_num].flag_data = 0;
-//			Matrix_data[line_num].id_pixel_col = 0;
-//			Matrix_data[line_num].id_string = 0;
-//			matrix_refesh(line_num);
-//			font_get_location_lenght((uint8_t)Matrix_data[line_num].string[Matrix_data[line_num].id_string], &location_font, &Matrix_data[line_num].width_byte);
-//			matrix_get_one_font(line_num, location_font, Matrix_data[line_num].width_byte);
-//		}
-//	}
-//}
+void matrix_run_hidden(void)
+{
+	static uint16_t pixel_col_num_hidden[TABLE_ROW_NUM] = {0,0};
+	static uint16_t location_font_hidden[TABLE_ROW_NUM] = {0,0}; //vị trí của một font chữ trong bảng mã
+	for (uint8_t line_num = 0; line_num < TABLE_ROW_NUM; line_num++)
+	{
+		if (Matrix_data[line_num].flag_data == 1)
+		{				
+			if (pixel_col_num_hidden[line_num] == 0)
+			{
+				pixel_col_num_hidden[line_num] = PIXEL_COL * TABLE_COL_NUM;
+				// Matrix_data[line_num].flag_data = 0;
+				Matrix_data[line_num].id_pixel_col = 0;
+				Matrix_data[line_num].id_string = 0;
+				matrix_refesh(line_num);
+				font_get_location_lenght((uint8_t)Matrix_data[line_num].string[Matrix_data[line_num].id_string], &location_font_hidden[line_num], &Matrix_data[line_num].width_byte);
+				matrix_get_one_font(line_num, location_font_hidden[line_num], Matrix_data[line_num].width_byte);
+			}
+			else
+			{
+
+				matrix_prepare_data(line_num, 1); //chỉ sao chép 1 cột vào mãng
+				if (++Matrix_data[line_num].id_pixel_col == Matrix_data[line_num].width_byte)
+				{
+					Matrix_data[line_num].id_pixel_col = 0;
+					/*nếu đã hết ký tự thì chèn khoảng trống vào*/
+					if (++Matrix_data[line_num].id_string >= strlen(Matrix_data[line_num].string))
+					{
+						/*Nếu không có hiệu ứng thì thoát*/
+						if (Matrix_data[line_num].pause_run == 0)
+						{
+							font_get_location_lenght(' ', &location_font_hidden[line_num], &Matrix_data[line_num].width_byte);
+							matrix_get_one_font(line_num, location_font_hidden[line_num], Matrix_data[line_num].width_byte);
+						}
+						else
+						{
+							Matrix_data[line_num].id_string = 0;
+							font_get_location_lenght((uint8_t)Matrix_data[line_num].string[Matrix_data[line_num].id_string], &location_font_hidden[line_num], &Matrix_data[line_num].width_byte);
+							matrix_get_one_font(line_num, location_font_hidden[line_num], Matrix_data[line_num].width_byte);
+						}
+					}
+					else
+					{
+						font_get_location_lenght((uint8_t)Matrix_data[line_num].string[Matrix_data[line_num].id_string], &location_font_hidden[line_num], &Matrix_data[line_num].width_byte);
+						matrix_get_one_font(line_num, location_font_hidden[line_num], Matrix_data[line_num].width_byte);
+					}										
+				}
+				pixel_col_num_hidden[line_num]--;
+				if(pixel_col_num_hidden[line_num] == 0)
+				{
+					Matrix_data[line_num].flag_data = 0;
+				}
+			}
+		}
+	}
+}
 
 /*chương trình nhận và xử lý ký tự thành byte array để hiển thị*/
 void matrix_process(void)
@@ -184,6 +221,8 @@ void matrix_process(void)
 	uint8_t line_num;
 	uint16_t location_font; //vị trí của một font chữ trong bảng mã
 	uint16_t pixel_col_num = 1;
+	
+	matrix_run_hidden();
 	
 	if (row_of_line != 0)
 	{
@@ -200,14 +239,15 @@ void matrix_process(void)
 			
 		if (Matrix_data[line_num].flag_data == 1)
 		{
-			row_update_enable = 1;
-			pixel_col_num = PIXEL_COL * TABLE_COL_NUM;
-			// Matrix_data[line_num].flag_data = 0;
-			Matrix_data[line_num].id_pixel_col = 0;
-			Matrix_data[line_num].id_string = 0;
-			matrix_refesh(line_num);
-			font_get_location_lenght((uint8_t)Matrix_data[line_num].string[Matrix_data[line_num].id_string], &location_font, &Matrix_data[line_num].width_byte);
-			matrix_get_one_font(line_num, location_font, Matrix_data[line_num].width_byte);
+				continue;
+//			row_update_enable = 1;
+//			pixel_col_num = PIXEL_COL * TABLE_COL_NUM;
+//			// Matrix_data[line_num].flag_data = 0;
+//			Matrix_data[line_num].id_pixel_col = 0;
+//			Matrix_data[line_num].id_string = 0;
+//			matrix_refesh(line_num);
+//			font_get_location_lenght((uint8_t)Matrix_data[line_num].string[Matrix_data[line_num].id_string], &location_font, &Matrix_data[line_num].width_byte);
+//			matrix_get_one_font(line_num, location_font, Matrix_data[line_num].width_byte);
 		}
 		else
 		{
@@ -242,15 +282,9 @@ void matrix_process(void)
 				}
 			}
 
-			// //đếm số pixel theo cột để tạo lề trái
-			// if (++pixel_col_num == PIXEL_COL * TABLE_COL_NUM)
-			// 	break;
-			// /*Nếu có hiệu ứng thì thoát ra chờ vòng tiếp theo*/
-			// if (Matrix_data[line_num].pause_run == 1)
-			// 	break;
 			pixel_col_num -= 1;
 		}
-		Matrix_data[line_num].flag_data = 0;
+		//Matrix_data[line_num].flag_data = 0;
 	}
 	
 	if(row_update_enable == 1)
