@@ -70,7 +70,7 @@ struct
 {
 	uint8_t line;
 	uint8_t pause_run;
-	uint8_t data[200];
+	uint8_t data[201];
 	uint16_t packit; //chỉ lấy 3byte 000-999
 } Frame_01;			 /*nhận chuỗi dữ liệu hiển thị*/
 
@@ -122,7 +122,7 @@ int main(void)
 	
 	HAL_IWDG_Start(&hiwdg);
 
-	debug_msg("start kaka...........\r");
+	USART1_PRINTF("\r\nHello matrix Fans!\r\n");
 	matrix_refesh(0);
 	matrix_refesh(1);
 	
@@ -310,16 +310,21 @@ void report_to_app(uint8_t line, uint8_t pause_run, uint8_t status, uint16_t pac
 
 /*
 $7E$0C$0110Hello005$7B$7F
-$7E$21$0111Welcome to MT LED Test App005$57$7F
-$7E$16$012129-2-2010 15:30005$7B$7F
+$7E$0C$0111Hello005$7A$7F
 
-struct
-{
-	uint8_t line;
-	uint8_t pause_run;
-	uint8_t data[200];
-	uint16_t packit; //chỉ lấy 3byte 000-999
-} Frame_01;
+$7E$21$0111Welcome to MT LED Test App005$57$7F
+$7E$21$0110Welcome to MT LED Test App005$56$7F
+
+$7E$16$012129-2-2010 15:30005$06$7F
+$7E$16$012029-2-2010 15:30005$07$7F
+
+$7E$65$0111 !"##$$%&'()*+,-./123456789:;<<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~005$1E$7F
+$7E$65$0110 !"##$$%&'()*+,-./123456789:;<<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~005$1F$7F
+
+$7E$65$0121 !"##$$%&'()*+,-./123456789:;<<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~005$1D$7F
+$7E$65$0120 !"##$$%&'()*+,-./123456789:;<<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~005$1C$7F
+
+ !"#$%&'()*+,-./123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~
 
 */
 void get_string_handle(char *data, command_error_typdef error)
@@ -340,7 +345,7 @@ void get_string_handle(char *data, command_error_typdef error)
 	Frame_01.line = (data[0] - '0');
 	/*lấy dữ liệu cmd pause run*/
 	Frame_01.pause_run = (data[1] - '0');
-	memset(Frame_01.data, 0, 200);
+	memset(Frame_01.data, 0, 201);
 	memcpy(Frame_01.data, &data[2], strlen(data) - 5);
 	/*lấy dữ liệu cmd packit*/
 	Frame_01.packit = atoi(&data[strlen(data) - 3]);
